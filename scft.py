@@ -69,22 +69,28 @@ def mdeSplit(fft, ifft, k2, ds):
     return initpotential, evolver
 
 
-def diblock(*, init, evolve, chi, Na: int, Nb: int):
+def diblock(*, init, evolve, chi: float, f: float, N: int):
     """Generate solution to diblock copolymer melt scft equations
     Args:
         init   : init function for potential term in propagator
         evolve : chain propagator
         chi    : chi parameter
-        Na     : number of A segments
-        Nb     : number of B segments
+        f      : target fraction of A segments
+        N      : total number of segments (N = Na + Nb)
     Returns :
-        (ds, f) : countour step,  A/B fraction
         (diff,diff_c) : single chain propagator and complementary propagators, mu_a -> mu_b -> q|qc
         solution : mu_a -> mu_b -> (Q, (q,qc), (phi_a, phi_b), (dHmu_p, dHmu_m))
     """
-    ds = 1.0 / (Na + Nb)
+    assert isinstance(N, int) and N >= 0, "Invalid N"
+    assert isinstance(f, float) and f >= 0.0 and f <= 1.0, "Invalid f : check that 0 <= f <= 1 !"
+    print(f"f0 : {f:.3f}")
+    ds = 1.0 / N
+    Na = int(f * N)
+    if Na > N:
+        Na = N
+    Nb = N - Na
     f = Na * ds
-    print(f"f  : {f:.3f} ")
+    print(f"f  : {f:.3f}")
     print(f"Ns : {Na} A + {Nb} B = {Na + Nb} segments ")
 
     def diffusion(Ni: int, Nj: int):
@@ -108,7 +114,7 @@ def diblock(*, init, evolve, chi, Na: int, Nb: int):
             (_, qx), qi = jax.lax.scan(scan_fun, carry, None, length=Ni)
             carry = (init(mu_j), qx)
             _, qj = jax.lax.scan(scan_fun, carry, None, length=Nj)
-            return np.vstack([q0, qi, qj])
+            return np.concatenate([q0[None, ...], qi, qj], axis=0)
 
         return fun
 
@@ -173,7 +179,7 @@ def binarymelt(*, init, evolve, chi, f, N: int):
             q0 = np.ones_like(mu)
             carry = (init(mu), q0)
             carry, qi = jax.lax.scan(scan_fun, carry, None, length=N)
-            return np.vstack([q0, qi])
+            return np.concatenate([q0[None, ...], qi], axis=0)
 
         return fun
 

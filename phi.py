@@ -28,6 +28,7 @@ Coeff = np.array(
 
 
 def phi1(z):
+    """Phi1(z) = (exp(z) - 1) / z"""
     ans = np.zeros_like(z)
     z2 = z * z
     z3 = z2 * z
@@ -48,6 +49,7 @@ def phi1(z):
 
 
 def phi2(z):
+    """Phi2(z) = (exp(z) - z - 1) / z^2"""
     ans = np.zeros_like(z)
     z2 = z * z
     z3 = z2 * z
@@ -93,6 +95,7 @@ def phi2(z):
 
 
 def phi3(z):
+    """Phi3(z) = (exp(z) - z - 1/2 z^2 - 1) / z^3"""
     ans = np.zeros_like(z)
     z2 = z * z
     z3 = z2 * z

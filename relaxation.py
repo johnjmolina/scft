@@ -1,5 +1,10 @@
 from utils import binary_pm2ab, pin
 
+"""Relaxation routines to find \mu* saddle point solutions
+    Euler : simple explicit euler 
+    SIS   : semi-implicit seidel method
+"""
+
 
 def binary_euler(*, solver, dt, trj):
     """

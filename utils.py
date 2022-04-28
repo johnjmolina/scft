@@ -58,45 +58,48 @@ def binary_pm2ab(mu_p, mu_m):
     return mu_a, mu_b
 
 
-def grid(*, L, N):
+def grid(*, dim: int, L, N):
     """Create Real/Recip grid for pseudo-spectral solvers on real data"""
+    assert dim > 0 and dim < 4, "Wrong dim, dim = 1|2|3"
 
-    def _halfk(L, num: int):
-        x = np.linspace(0.0, L, num=num, endpoint=False)
+    def _halfk(l: float, num: int):
+        assert isinstance(l, float) and isinstance(num, int), "Invalid l (n), must be real(int)"
+        x = np.linspace(0.0, l, num=num, endpoint=False)
         k = np.fft.rfftfreq(num, d=x[1] - x[0]) * 2 * np.pi
         return x, k
 
-    def _fullk(L, num: int):
-        x = np.linspace(0.0, L, num=num, endpoint=False)
+    def _fullk(l: float, num: int):
+        assert isinstance(l, float) and isinstance(num, int), "Invalid l (n), must be real(int)"
+        x = np.linspace(0.0, l, num=num, endpoint=False)
         k = np.fft.fftfreq(num, d=x[1] - x[0]) * 2 * np.pi
         return x, k
 
     def _mesh(*arrays):
-        return np.stack(np.meshgrid(*arrays, indexing="ij"), axis=-1)
+        return np.stack(np.meshgrid(*arrays, indexing="ij"), axis=0)
 
-    ls = np.array(L)
-    ns = np.array(N)
-    dim = np.size(ls)
-    assert dim == np.size(ns)
     if dim == 1:
-        x, k = _halfk(ls, ns)
+        assert isinstance(L, float) and isinstance(N, int), "Invalid L (N) for dim=1, must be scalars"
+        x, k = _halfk(L, N)
         dx, dk = x[1] - x[0], k[1] - k[0]
         print(f"x  : [{x[0]:.3f}, {x[-1]+dx:.3f}), dx={dx:.3e} ({len(x)} points)")
         print(f"k  : [{k[0]:.3f}, {k[-1]+dk:.3f}), dk={dk:.3e} ({len(k)} points)")
-        return np.fft.rfft, partial(np.fft.irfft, n=ns), x, k, k**2
+        return np.fft.rfft, partial(np.fft.irfft, n=N), x, k, k**2
     elif dim == 2:
-        x, kx = _fullk(ls[0], ns[0])
-        y, ky = _halfk(ls[1], ns[1])
-        X = _mesh(x, y, indexing="ij")
-        K = _mesh(kx, ky, indexing="ij")
-        return np.fft.rfftn, partial(np.fft.irfftn, s=ns), X, K, np.linalg.norm(K, axis=-1) ** 2
-    elif dim == 3:
-        x, kx = _fullk(ls[0], ns[0])
-        y, ky = _fullk(ls[1], ns[1])
-        z, kz = _halfk(ls[2], ns[2])
-        X = _mesh(x, y, z, indexing="ij")
-        K = _mesh(kx, ky, kz, indexing="ij")
-        return np.fft.rfftn, partial(np.fft.irfftn, s=ns), X, K, np.linalg.norm(K, axis=-1) ** 2
+        assert (
+            isinstance(L, list) and isinstance(N, list) and len(L) == len(N) == 2
+        ), "Ivalid L (N) for dim=2, must be lists"
+        x, kx = _fullk(L[0], N[0])
+        y, ky = _halfk(L[1], N[1])
+        X = _mesh(x, y)
+        K = _mesh(kx, ky)
+        return np.fft.rfftn, partial(np.fft.irfftn, s=N), X, K, np.linalg.norm(K, axis=0) ** 2
     else:
-        print("Wrong dimension")
-        assert False
+        assert (
+            isinstance(L, list) and isinstance(N, list) and len(L) == len(N) == 3
+        ), "Invalid L (N) for dim=3, must be lists"
+        x, kx = _fullk(L[0], N[0])
+        y, ky = _fullk(L[1], N[1])
+        z, kz = _halfk(L[2], N[2])
+        X = _mesh(x, y, z)
+        K = _mesh(kx, ky, kz)
+        return np.fft.rfftn, partial(np.fft.irfftn, s=N), X, K, np.linalg.norm(K, axis=0) ** 2
